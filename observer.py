@@ -12,7 +12,7 @@ class Observer(threading.Thread):
         create an instance of the discovered console.
         """
         super(Observer, self).__init__(name='PWS Observer Daemon')
-	#self.daemon = True
+	self.daemon = True
 	
         plugin_base = pluginbase.PluginBase('console_models')
         plugin_source = plugin_base.make_plugin_source(
