@@ -37,7 +37,7 @@ class Observer(object):
             console_plugin = importlib.import_module('consoles.'+plugin)
             for cnsl_name, cnsl_class in inspect.getmembers(console_plugin,
                                                             inspect.isclass):
-                if  not hasattr(cnsl_class, 'discover'):
+                if not hasattr(cnsl_class, 'discover'):
                     continue
 
                 console = cnsl_class.discover()
