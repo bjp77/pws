@@ -1,6 +1,4 @@
-
-
-nal Weather Station Observer
+#Personal Weather Station Observer
 
 The PWS Obersver is an application written in Python that connects to a PWS
 console, periodically samples console data, and then stores the data in a
