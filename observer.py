@@ -33,8 +33,11 @@ class Observer(object):
             console_plugin = importlib.import_module('consoles.'+plugin)
             for cnsl_name, cnsl_class in inspect.getmembers(console_plugin,
                                                             inspect.isclass):
+                if  not hasattr(cnsl_class, 'discover'):
+                    continue
+
                 console = cnsl_class.discover()
-                if console != None:
+                if console is not  None:
                     return console
 
         # No console found
@@ -53,9 +56,12 @@ class Observer(object):
             emitter_plugin = importlib.import_module('emitters.'+plugin)
             for emit_name, emit_class in inspect.getmembers(emitter_plugin,
                                                             inspect.isclass):
-                emitter = emit_class.connect()
-                if emitter != None:
-                    emitters.append(emitter)
+                    if not hasattr(emit_class, 'connect'):
+                        continue
+
+                    emitter = emit_class.connect()
+                    if emitter != None:
+                        emitters.append(emitter)
 
         return emitters
 
