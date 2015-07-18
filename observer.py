@@ -5,8 +5,12 @@ import logging
 import json
 import time
 from mongo import Database
+import logging
 
-DEFAULT_POLLING_INTERVAL = 60
+logging.basicConfig(filename='/var/log/pwsobs.log',
+                    format='%(levelname)s:%(asctime)s %(message)s')
+
+DEFAULT_POLLING_INTERVAL = 10
 
 class Observer(object):
     def __init__(self):
