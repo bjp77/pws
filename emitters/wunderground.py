@@ -21,7 +21,7 @@ class Wunderground(object):
         dateutc = urllib.quote(str(data['Time']).split('.')[0])
         url = self._base_url_spec.format(self._station, self._password, dateutc)
 
-        for key in data:
+        for key in self._mapper:
             try:
                 url += self._mapper[key].format(data[key])
             except KeyError:

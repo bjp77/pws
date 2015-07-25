@@ -16,8 +16,8 @@ class lookup(dict):
     __setattr__ = dict.__setitem__
 
 _commands = {
-    'test': Command('TEST\n', 'TEST'),
-    'loop': Command('LOOP 1\n', 'LOO'),
+    'test': Command('TEST\n', '\x06TEST'),
+    'loop': Command('LOOP 1\n', '\x06LOO'),
 }
 
 commands = lookup(_commands)
