@@ -53,9 +53,23 @@ class DavisConsole(object):
         
     def measure(self):
        """Return dictionary of measured values."""
+       obs = {}
        ts = datetime.datetime.utcnow()
+       obs['Time'] = ts
+
        dat_array = self._serial.exec_cmd(commands.loop)
-       temp = float((dat_array[self.TEMP_HIGH] << 8) + dat_array[self.TEMP_LOW]) / 10
-       humidity = dat_array[self.HUMIDITY]
-       return {'Time':ts, 'Temperature':temp, 'Humidity':humidity}
+       try:
+            temp = float((dat_array[self.TEMP_HIGH] << 8) +  \
+               dat_array[self.TEMP_LOW]) / 10
+            obs['Temperature'] = temp
+       except IndexError as e:
+           logging.error(e)
+
+       try:
+           humidity = dat_array[self.HUMIDITY]
+           obs['Humidity'] = humidity
+       except IndexError as e:
+           logging.error(e)
+
+       return obs
    

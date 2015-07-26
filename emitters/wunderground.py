@@ -1,6 +1,7 @@
 import configparser
 import requests
 import urllib
+import logging
 
 class Wunderground(object):
 
@@ -36,13 +37,21 @@ class Wunderground(object):
         conf.read(f)
         station = conf.get('WUConfig', 'station')
         password = conf.get('WUConfig', 'password')
-        r = requests.get(cls._base_url_spec.format(station, password, 'now'))
-        if r.status_code == requests.codes.ok:
-            return cls(station, password)
+        for i in range(0,5):
+            try:
+                r = requests.get(cls._base_url_spec.format(station,
+                                                           password, 'now'))
+                if r.status_code == requests.codes.ok:
+                    return cls(station, password)
+            except Exception as e:
+                logging.error(e)
         else:
             return None
 
     def send(self, data):
-        r = requests.get(self._build_url(data))
-        print r.text
-        return r.status_code == requests.codes.ok
+        try:
+            r = requests.get(self._build_url(data))
+            return r.status_code == requests.codes.ok
+        except Exception as e:
+            logging.error(e)
+            return False
