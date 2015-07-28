@@ -20,7 +20,7 @@ class _valid_range():
         self.max = max
 
     def __call__(self, val):
-       return val >= min and val <= max
+       return val >= self.min and val <= self.max
 
 _valid = {
     'Temperature': _valid_range(-100, 150),
