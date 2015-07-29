@@ -12,21 +12,6 @@ logging.basicConfig(filename='/var/log/pwsobs.log',
 log = logging.getLogger()
 log.setLevel(logging.DEBUG)
 
-DEFAULT_POLLING_INTERVAL = 10
-
-class _valid_range():
-    def __init__(self, min, max):
-        self.min = min
-        self.max = max
-
-    def __call__(self, val):
-       return val >= self.min and val <= self.max
-
-_valid = {
-    'Temperature': _valid_range(-100, 150),
-    'Humidity': _valid_range(0, 100),
-}
-
 class Observer(object):
     CNSL_PLUGIN_PATH = './consoles'
     EMIT_PLUGIN_PATH = './emitters'
@@ -37,13 +22,33 @@ class Observer(object):
     DISCOVER_METHOD = 'discover'
     CONNECT_METHOD = 'connect'
 
-    def __init__(self, find_cnsl=True, find_emitters=True):
+    class _valid_range():
+        def __init__(self, min, max):
+            self.min = min
+            self.max = max
+
+        def __call__(self, val):
+            return val >= self.min and val <= self.max
+
+    _valid = {
+        'Temperature': _valid_range(-100, 150),
+        'Humidity': _valid_range(0, 100),
+        'Pressure': _valid_range(20, 32.5),
+        'RainRate': _valid_range(0, 10.0),
+        'WindSpeed': _valid_range(0, 200),
+        'WindDir': _valid_range(0, 360),
+        'WindGustSpeed': _valid_range(0, 200),
+        'WindGustDir': _valid_range(0, 360),
+        'Dewpoint': _valid_range(-100, 150),
+    }
+
+    def __init__(self, find_cnsl=True, find_emitters=True, polling_interval=10):
         """Iterate over available PWS console plugins.  Once a plugin
         is found that returns a connection object from its discover method,
         create an instance of the discovered console.
         """
         #TODO Load config file
-        self.polling_interval = DEFAULT_POLLING_INTERVAL
+        self.polling_interval = polling_interval
         self.db = Database()   
         if find_cnsl:
             self.console = self.find_console()
@@ -118,7 +123,7 @@ class Observer(object):
                 continue
 
             try:
-                if not _valid[key](obs[key]):
+                if not self._valid[key](obs[key]):
                     logging.error('{0} value {1} is out of range'. \
                         format(key, obs[key]))
                     del_key_list.append(key)

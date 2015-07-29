@@ -8,6 +8,10 @@ class Wunderground(object):
     _mapper = {
         'Temperature': '&tempf={0}',
         'Humidity': '&humidity={0}',
+        'Pressure': '&baromin={0:.1f}',
+        'RainRate': '&rainin={0}',
+        'WindSpeed': '&windspeedmph={0}',
+        'WindDir': '&winddir={0}'
     }
 
     _base_url_spec = ('http://weatherstation.wunderground.com/weatherstation/'
