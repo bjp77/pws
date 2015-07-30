@@ -36,23 +36,33 @@ class _SerialCommand(serial.Serial):
 class DavisConsole(object):
     '''Davis Vantage Pro2/Vue plugin class.'''
 
-    #LOOP data offsets for various measurements.
-    TEMP_HIGH = 14
-    TEMP_LOW = 13
-    HUMIDITY = 34
-    PRESSURE_HIGH = 9
-    PRESSURE_LOW = 8
-    RAINRATE_HIGH = 43
-    RAINRATE_LOW = 42
-    WINDSPEED = 15
-    WINDDIR_HIGH = 18
-    WINDDIR_LOW = 17
-    WINDGUSTSPEED_HIGH = 24
-    WINDGUSTSPEED_LOW = 23
-    WINDGUSTDIR_HIGH = 26
-    WINDGUSTDIR_LOW = 25
-    DEWPOINT_HIGH = 32
-    DEWPOINT_LOW = 31
+    class _data_desc(object):
+        def __init__(self, offsets, divisor):
+            assert(divisor > 0)
+            self._offsets = offsets
+            self._divisor = divisor
+
+        def __call__(self, data):
+            value = 0
+            shift = 0
+
+            for offset in self._offsets:
+                value += data[offset] << shift
+                shift += 8
+
+            return float(value) / self._divisor
+
+    _data_lookup = {
+        'Temperature': _data_desc([13, 14], 10),
+        'Humidity': _data_desc([34], 1),
+        'Dewpoint': _data_desc([31, 32], 1),
+        'Pressure': _data_desc([8, 9], 1000),
+        'RainRate': _data_desc([42, 43], 100),
+        'WindSpeed': _data_desc([15], 1),
+        'WindDir': _data_desc([17, 18], 1),
+        'WindGustSpeed': _data_desc([23, 24], 10),
+        'WindGustDir': _data_desc([25, 26], 1)
+    }
 
     def __init__(self, conn):
         self._serial = _SerialCommand(conn[0], conn[1])
@@ -74,66 +84,11 @@ class DavisConsole(object):
        obs['Time'] = ts
 
        dat_array = self._serial.exec_cmd(_commands.loop)
-       try:
-            temp = float((dat_array[self.TEMP_HIGH] << 8) +  \
-               dat_array[self.TEMP_LOW]) / 10
-            obs['Temperature'] = temp
-       except IndexError as e:
-           logging.error(e)
-
-       try:
-           humidity = dat_array[self.HUMIDITY]
-           obs['Humidity'] = humidity
-       except IndexError as e:
-           logging.error(e)
-
-       try:
-           pressure = float((dat_array[self.PRESSURE_HIGH] << 8) + \
-               dat_array[self.PRESSURE_LOW]) / 1000
-           obs['Pressure'] = pressure
-       except IndexError as e:
-           logging.error(e)
-
-       try:
-           rainrate = float((dat_array[self.RAINRATE_HIGH] << 8) + \
-               dat_array[self.RAINRATE_LOW]) / 100
-           obs['RainRate'] = rainrate
-       except IndexError as e:
-           logging.error(e)
-
-       try:
-           windspeed = dat_array[self.WINDSPEED]
-           obs['WindSpeed'] = windspeed
-       except IndexError as e:
-           logging.error(e)
-
-       try:
-            winddir = (dat_array[self.WINDDIR_HIGH] << 8) +  \
-               dat_array[self.WINDDIR_LOW]
-            obs['WindDir'] = winddir
-       except IndexError as e:
-           logging.error(e)
-
-       try:
-            windgustspeed = float((dat_array[self.WINDGUSTSPEED_HIGH] << 8) +  \
-               dat_array[self.WINDGUSTSPEED_LOW]) / 10
-            obs['WindGustSpeed'] = windgustspeed
-       except IndexError as e:
-           logging.error(e)
-
-       try:
-            windgustdir = (dat_array[self.WINDGUSTDIR_HIGH] << 8) +  \
-               dat_array[self.WINDGUSTDIR_LOW]
-            obs['WindGustDir'] = windgustdir
-       except IndexError as e:
-           logging.error(e)
-
-       try:
-            dewpoint = (dat_array[self.DEWPOINT_HIGH] << 8) +  \
-               dat_array[self.DEWPOINT_LOW]
-            obs['Dewpoint'] = dewpoint
-       except IndexError as e:
-           logging.error(e)
+       for key in self._data_lookup:
+           try:
+               obs[key] = self._data_lookup[key](dat_array)
+           except (IndexError, KeyError) as e:
+               logging.error(e)
 
        return obs
    
