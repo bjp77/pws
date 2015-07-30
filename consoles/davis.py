@@ -17,7 +17,7 @@ class _lookup(dict):
 
 _command_map = {
     'test': _Command('TEST\n', '\x06TEST'),
-    'loop': _Command('LOOP 1\n', '\x06LOO'),
+    'loop': _Command('LPS 0x2 1\n', '\x06LOO'),
 }
 
 _commands = _lookup(_command_map)
@@ -47,14 +47,12 @@ class DavisConsole(object):
     WINDSPEED = 15
     WINDDIR_HIGH = 18
     WINDDIR_LOW = 17
-    '''
     WINDGUSTSPEED_HIGH = 24
     WINDGUSTSPEED_LOW = 23
     WINDGUSTDIR_HIGH = 26
     WINDGUSTDIR_LOW = 25
     DEWPOINT_HIGH = 32
     DEWPOINT_LOW = 31
-    '''
 
     def __init__(self, conn):
         self._serial = _SerialCommand(conn[0], conn[1])
@@ -115,8 +113,7 @@ class DavisConsole(object):
             obs['WindDir'] = winddir
        except IndexError as e:
            logging.error(e)
-       '''
-       # Not supported in LOOP version 1 packet.
+
        try:
             windgustspeed = float((dat_array[self.WINDGUSTSPEED_HIGH] << 8) +  \
                dat_array[self.WINDGUSTSPEED_LOW]) / 10
@@ -137,6 +134,6 @@ class DavisConsole(object):
             obs['Dewpoint'] = dewpoint
        except IndexError as e:
            logging.error(e)
-       '''
+
        return obs
    
