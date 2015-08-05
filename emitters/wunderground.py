@@ -11,6 +11,7 @@ class Wunderground(object):
         'Dewpoint': '&dewptf={0}',
         'Pressure': '&baromin={0:.2f}',
         'RainRate': '&rainin={0}',
+        'DailyRain': '&dailyrainin={0}',
         'WindSpeed': '&windspeedmph={0}',
         'WindDir': '&winddir={0}',
         'WindGustSpeed': '&windgustmph={0}',

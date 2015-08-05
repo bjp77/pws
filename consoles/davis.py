@@ -58,10 +58,11 @@ class DavisConsole(object):
         'Dewpoint': _data_desc([31, 32], 1),
         'Pressure': _data_desc([8, 9], 1000),
         'RainRate': _data_desc([42, 43], 100),
+        'DailyRain': _data_desc([51, 52], 100),
         'WindSpeed': _data_desc([15], 1),
         'WindDir': _data_desc([17, 18], 1),
         'WindGustSpeed': _data_desc([23, 24], 10),
-        'WindGustDir': _data_desc([25, 26], 1)
+        'WindGustDir': _data_desc([25, 26], 1),
     }
 
     def __init__(self, conn):

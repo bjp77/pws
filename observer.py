@@ -35,6 +35,7 @@ class Observer(object):
         'Humidity': _valid_range(0, 100),
         'Pressure': _valid_range(20, 32.5),
         'RainRate': _valid_range(0, 10.0),
+        'DailyRain': _valid_range(0, 10.0),
         'WindSpeed': _valid_range(0, 200),
         'WindDir': _valid_range(0, 360),
         'WindGustSpeed': _valid_range(0, 200),
@@ -42,7 +43,7 @@ class Observer(object):
         'Dewpoint': _valid_range(-100, 150),
     }
 
-    def __init__(self, find_cnsl=True, find_emitters=True, polling_interval=10):
+    def __init__(self, find_cnsl=True, find_emitters=True, polling_interval=240):
         """Iterate over available PWS console plugins.  Once a plugin
         is found that returns a connection object from its discover method,
         create an instance of the discovered console.
