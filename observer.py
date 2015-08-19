@@ -1,4 +1,3 @@
-import pluginbase
 import inspect
 import importlib #not sure if this is really needed. 
 import logging
@@ -6,6 +5,10 @@ import json
 import time
 from mongo import Database
 import logging
+import gevent
+import pluginbase
+import datetime
+from observation import Observation
 
 logging.basicConfig(filename='/var/log/pwsobs.log',
                     format='%(levelname)s:%(asctime)s %(message)s')
@@ -22,35 +25,16 @@ class Observer(object):
     DISCOVER_METHOD = 'discover'
     CONNECT_METHOD = 'connect'
 
-    class _valid_range():
-        def __init__(self, min, max):
-            self.min = min
-            self.max = max
-
-        def __call__(self, val):
-            return val >= self.min and val <= self.max
-
-    _valid = {
-        'Temperature': _valid_range(-100, 150),
-        'Humidity': _valid_range(0, 100),
-        'Pressure': _valid_range(20, 32.5),
-        'RainRate': _valid_range(0, 10.0),
-        'DailyRain': _valid_range(0, 10.0),
-        'WindSpeed': _valid_range(0, 200),
-        'WindDir': _valid_range(0, 360),
-        'WindGustSpeed': _valid_range(0, 200),
-        'WindGustDir': _valid_range(0, 360),
-        'Dewpoint': _valid_range(-100, 150),
-    }
-
-    def __init__(self, find_cnsl=True, find_emitters=True, polling_interval=240):
+    def __init__(self, find_cnsl=True, find_emitters=True, poll_interval=5, emit_interval=60):
         """Iterate over available PWS console plugins.  Once a plugin
         is found that returns a connection object from its discover method,
         create an instance of the discovered console.
         """
         #TODO Load config file
-        self.polling_interval = polling_interval
-        self.db = Database()   
+        self.poll_interval = poll_interval
+        self.emit_interval = emit_interval
+        self._obs = None
+        self.db = Database()
         if find_cnsl:
             self.console = self.find_console()
         if find_emitters:
@@ -117,35 +101,34 @@ class Observer(object):
 
         return emitters
 
-    def _validate_obs(self, obs):
-        del_key_list = []
-        for key in obs:
-            if key == 'Time':
-                continue
+    def _emit(self):
+        while True:
+            if self._obs is not None:
+                obs = self._obs.as_dict()
+                self.db.save(obs)
+                for emitter in self.emitters:
+                    emitter.send(obs)
+                self._obs = None
+                gevent.sleep(self.emit_interval)
 
-            try:
-                if not self._valid[key](obs[key]):
-                    logging.error('{0} value {1} is out of range'. \
-                        format(key, obs[key]))
-                    del_key_list.append(key)
-            except KeyError:
-                logging.debug('{0} raises KeyError.'.format(key))
-
-        for key in del_key_list:
-            obs.pop(key, None)
-
-    def run(self):
+    def _poll(self):
         """Start PWS monitor service"""
         while True:
             #TODO Apply filters to obersvation data
             #TODO Backfill and resume after connection failure
-            obs = self.console.measure()
-            logging.debug(obs)
-            self._validate_obs(obs)
-            self.db.save(obs)
-            for emitter in self.emitters:
-                emitter.send(obs)
-            time.sleep(self.polling_interval)
+            if self._obs is None:
+                ts = datetime.datetime.utcnow()
+                self._obs = Observation(ts, self.console.measure(), maxes=['wind_speed'])
+            else:
+                self._obs.update(self.console.measure())
+            gevent.sleep(self.poll_interval)
+
+    def start(self):
+        threads = [gevent.spawn(self._poll),
+                   gevent.spawn(self._emit)]
+        print threads
+        gevent.joinall(threads)
 
 if __name__ == '__main__':
-    Observer().run()
+    Observer().start()
+

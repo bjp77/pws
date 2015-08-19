@@ -6,5 +6,4 @@ class Database(object):
         self.db = client.weather
 
     def save(self, data):
-        print data
         self.db.observations.insert_one(data)

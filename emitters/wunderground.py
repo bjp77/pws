@@ -6,16 +6,15 @@ import logging
 class Wunderground(object):
 
     _mapper = {
-        'Temperature': '&tempf={0}',
-        'Humidity': '&humidity={0}',
-        'Dewpoint': '&dewptf={0}',
-        'Pressure': '&baromin={0:.2f}',
-        'RainRate': '&rainin={0}',
-        'DailyRain': '&dailyrainin={0}',
-        'WindSpeed': '&windspeedmph={0}',
-        'WindDir': '&winddir={0}',
-        'WindGustSpeed': '&windgustmph={0}',
-        'WindGustDir': '&windgustdir={0}'
+        'temperature': '&tempf={0:.2f}',
+        'humidity': '&humidity={0:.2f}',
+        'dewpoint': '&dewptf={0:.2f}',
+        'pressure': '&baromin={0:.3f}',
+        'rain_rate': '&rainin={0:.2f}',
+        'daily_rain': '&dailyrainin={0:.2f}',
+        'wind_speed': '&windspeedmph={0:.2f}',
+        'wind_dir': '&winddir={0:.0f}',
+        'max_wind_speed': '&windgustmph={0:.2f}',
     }
 
     _base_url_spec = ('http://weatherstation.wunderground.com/weatherstation/'
@@ -27,14 +26,14 @@ class Wunderground(object):
         self._password = password
     
     def _build_url(self, data):
-        dateutc = urllib.quote(str(data['Time']).split('.')[0])
+        dateutc = urllib.quote(str(data['time_stamp']).split('.')[0])
         url = self._base_url_spec.format(self._station, self._password, dateutc)
 
         for key in self._mapper:
             try:
                 url += self._mapper[key].format(data[key])
             except KeyError:
-                pass
+                logging.error('{0} not found'.format(key))
 
         return url
 
@@ -57,6 +56,7 @@ class Wunderground(object):
             return None
 
     def send(self, data):
+	print data
         try:
             r = requests.get(self._build_url(data))
             return r.status_code == requests.codes.ok

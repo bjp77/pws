@@ -36,7 +36,7 @@ class _SerialCommand(serial.Serial):
 class DavisConsole(object):
     '''Davis Vantage Pro2/Vue plugin class.'''
 
-    class _data_desc(object):
+    class _DataDesc(object):
         def __init__(self, offsets, divisor):
             assert(divisor > 0)
             self._offsets = offsets
@@ -53,16 +53,14 @@ class DavisConsole(object):
             return float(value) / self._divisor
 
     _data_lookup = {
-        'Temperature': _data_desc([13, 14], 10),
-        'Humidity': _data_desc([34], 1),
-        'Dewpoint': _data_desc([31, 32], 1),
-        'Pressure': _data_desc([8, 9], 1000),
-        'RainRate': _data_desc([42, 43], 100),
-        'DailyRain': _data_desc([51, 52], 100),
-        'WindSpeed': _data_desc([15], 1),
-        'WindDir': _data_desc([17, 18], 1),
-        'WindGustSpeed': _data_desc([23, 24], 10),
-        'WindGustDir': _data_desc([25, 26], 1),
+        'temperature': _DataDesc([13, 14], 10),
+        'humidity': _DataDesc([34], 1),
+        'dewpoint': _DataDesc([31, 32], 1),
+        'pressure': _DataDesc([8, 9], 1000),
+        'rain_rate': _DataDesc([42, 43], 100),
+        'daily_rain': _DataDesc([51, 52], 100),
+        'wind_speed': _DataDesc([15], 1),
+        'wind_dir': _DataDesc([17, 18], 1),
     }
 
     def __init__(self, conn):
@@ -70,7 +68,7 @@ class DavisConsole(object):
     
     @classmethod
     def discover(cls):
-	"""Return tuple with discovered serial connection."""
+        """Return tuple with discovered serial connection."""
         for port in serialenum.enumerate():
             ser = _SerialCommand(port, 19200)
             if ser.exec_cmd(_commands.test) is not None:
@@ -81,14 +79,11 @@ class DavisConsole(object):
     def measure(self):
        """Return dictionary of measured values."""
        obs = {}
-       ts = datetime.datetime.utcnow()
-       obs['Time'] = ts
-
        dat_array = self._serial.exec_cmd(_commands.loop)
        for key in self._data_lookup:
            try:
                obs[key] = self._data_lookup[key](dat_array)
-           except (IndexError, KeyError) as e:
+           except IndexError as e:
                logging.error(e)
 
        return obs
