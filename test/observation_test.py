@@ -4,9 +4,11 @@ import datetime
 import json
 
 class ObserationTestBase(unittest.TestCase):
+    @staticmethod
     def __get_item(source, key):
         return source[key]
 
+    @staticmethod
     def __set_item(dest, key, value):
         dest[key] = value
 
@@ -58,12 +60,6 @@ class ObserationTestBase(unittest.TestCase):
 
     def test_reject_invalid_data(self):
         """Test adding invalid measurements to observation."""
-        def get_item(obs, key):
-            return obs.data[key]
-
-        def set_item(obs, key, value):
-            obs.data[key] = value
-
         ts = datetime.datetime.utcnow()
         data = {
             "temperature": 262.0,
@@ -77,8 +73,8 @@ class ObserationTestBase(unittest.TestCase):
         }
         obs = Observation(ts, data)
 
-        self.assertRaises(KeyError, get_item, obs, 'temperature')
-        self.assertRaises(KeyError, get_item, obs, 'wind_speed')
+        self.assertRaises(KeyError, self.__get_item, obs.data, 'temperature')
+        self.assertRaises(KeyError, self.__get_item, obs.data, 'wind_speed')
 
         obs.data['pressure'] = 94.56
         self.assertEqual(obs.data.pressure, 29.123)
@@ -86,12 +82,9 @@ class ObserationTestBase(unittest.TestCase):
         obs.data.pressure = 94.56
         self.assertEqual(obs.data.pressure, 29.123)
 
-        self.assertRaises(KeyError, set_item, obs, 'not_a_key', 0)
 
     def test_update(self):
         """Test update observation."""
-        def get_item(obs, key):
-            return obs.data[key]
 
         ts = datetime.datetime.utcnow()
         data = {
@@ -112,7 +105,7 @@ class ObserationTestBase(unittest.TestCase):
         }
         obs.update(data)
         self.assertEqual(obs.data.temperature, 70.0)
-        self.assertRaises(KeyError, get_item, obs, 'humidity')
+        self.assertRaises(KeyError, self.__get_item, obs.data, 'humidity')
 
     def test_serialize(self):
         """Test serializing observation"""
@@ -177,4 +170,19 @@ class ObserationTestBase(unittest.TestCase):
 
         obj = obs.as_dict()
         self.assertEqual(obj['max_wind_speed'], 22)
+
+        data = {
+            'temperature': 67,
+            'humidity': 32,
+        }
+        obs.update(data)
+        self.assertRaises(KeyError, self.__get_item, obs.maxes, 'wind_speed')
+
+        obs = Observation(ts, data, maxes=['wind_speed'])
+        self.assertRaises(KeyError, self.__get_item, obs.maxes, 'wind_speed')
+
+        obs = Observation(ts, data, maxes=['temperature'])
+        self.assertEqual(obs.data['temperature'],  obs.maxes['temperature'])
+        obs.data = {'humidity': 40}
+        self.assertRaises(KeyError, self.__get_item, obs.maxes, 'temperature')
 

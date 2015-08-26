@@ -1,58 +1,52 @@
 from utils import DotDict
+import sys
 import logging
 
+class _ObsValid():
+    def __init__(self, min, max):
+        self.min = min
+        self.max = max
+
+    def __call__(self, value):
+        if value < self.min or value > self.max:
+            raise ValueError('{0} is out of range'.format(value))
+
+class _ObsData(DotDict):
+    _valid = {
+         'temperature': _ObsValid(-100, 150),
+         'humidity': _ObsValid(0, 100),
+         'pressure': _ObsValid(20, 32.5),
+         'rain_rate': _ObsValid(0, 10.0),
+         'daily_rain': _ObsValid(0, 10.0),
+         'wind_speed': _ObsValid(0, 200),
+         'wind_dir': _ObsValid(0, 360),
+         'dewpoint': _ObsValid(-100, 150),
+    }
+
+    def __init__(self, data):
+        for key in data:
+            self.__setitem__(key, data[key])
+
+    def __setattr__(self, name, value):
+        try:
+            self.__class__._valid[name](value)
+            super(self.__class__, self).__setattr__(name, value)
+        except (KeyError, ValueError) as e:
+            logging.error(e)
+
+    def __setitem__(self, key, value):
+        try:
+            self.__class__._valid[key](value)
+            super(self.__class__, self).__setitem__(key, value)
+        except (KeyError, ValueError) as e:
+            logging.error(e)
+
 class Observation(object):
-    class _ObsData(DotDict):
-        class _ValidRange():
-            def __init__(self, min, max):
-                self.min = min
-                self.max = max
-
-            def __call__(self, val):
-                return val >= self.min and val <= self.max
-
-        _valid = {
-            'temperature': _ValidRange(-100, 150),
-            'humidity': _ValidRange(0, 100),
-            'pressure': _ValidRange(20, 32.5),
-            'rain_rate': _ValidRange(0, 10.0),
-            'daily_rain': _ValidRange(0, 10.0),
-            'wind_speed': _ValidRange(0, 200),
-            'wind_dir': _ValidRange(0, 360),
-            'dewpoint': _ValidRange(-100, 150),
-        }
-
-        def __init__(self, data):
-            del_key_list = []
-            for key in data:
-                try:
-                    if not self.__class__._valid[key](data[key]):
-                        del_key_list.append(key)
-                except KeyError:
-                    logging.error('{0} value {1} is out of range' \
-                                  .format(key,data[key]))
-                    del_key_list.append(key)
-
-            for key in del_key_list:
-                data.pop(key, None)
-
-            super(self.__class__, self).__init__(data)
-
-        def __setattr__(self, name, value):
-            if self.__class__._valid[name](value):
-                super(self.__class__, self).__setattr__(name, value)
-
-        def __setitem__(self, key, value):
-            if self.__class__._valid[key](value):
-                super(self.__class__, self).__setitem__(key, value)
-
     def __init__(self, stamp, data, maxes=[]):
         self.timestamp = stamp
-        self._data = self.__class__._ObsData(data)
+        self.__maxes = dict(zip(maxes, [sys.float_info.min] * len(maxes)))
+        self.data = data
         self.__count = 1
-        self.__maxes = self.__class__._ObsData({})
-        for key in maxes:
-            self.__maxes[key] = self._data[key]
 
     @staticmethod
     def __make_max_key(key):
@@ -63,39 +57,49 @@ class Observation(object):
         return self.__maxes
 
     @property
+    def count(self):
+        return self.__count
+
+    @property
     def data(self):
         return self._data
 
     @data.setter
-    def data(self, data, maxes=[]):
-        self._data = self.__class__._ObsData(data)
-        if len(maxes) > 0:
-            self.__maxes = self.__class__._Obsdata({})
-            for key in maxes:
-                self.__maxes[key] = self._data[key]
-        else:
-            for key in self.__maxes:
-                self.__maxes[key] = self._data[key]
+    def data(self, data):
+        self._data = _ObsData(data)
+
+        #First remove mexes that are not present in the data
+        for missing_key in set(self.__maxes).difference(self._data):
+            self.__maxes.pop(missing_key, None)
+
+        #Now fill in maxes from the new data.
+        for key in self.__maxes:
+            self.__maxes[key] = self._data[key]
+
         self.__count = 1
 
     def update(self, data):
-        del_key_list = []
-        self.__count +=1
-        update_data = self.__class__._ObsData(data)
-        for key in self._data:
-            try:
-                new_weight = 1.0 / float(self.__count)
-                old_weight = 1.0 - float(new_weight)
-                self._data[key] = self._data[key] * old_weight +\
-                                  update_data[key] * new_weight
-                if self.__maxes.has_key(key) and\
-                   self.__maxes[key] < data[key]:
-                        self.__maxes[key] = data[key]
-            except KeyError:
-                del_key_list.append(key)
+        update_data = _ObsData(data)
+        self.__count += 1
 
-        for key in del_key_list:
-            self._data.pop(key, None)
+        #First remove maxes that are not present in the update
+        for missing_key in set(self.__maxes).difference(update_data):
+            self.__maxes.pop(missing_key, None)
+
+        #Now remote data that are not present in the update
+        for missing_key in set(self._data).difference(update_data):
+            self._data.pop(missing_key, None)
+
+        #Now iterate over the data and compute a new weighted average
+        new_weight = 1.0 / float(self.__count)
+        old_weight = 1.0 - new_weight
+        for key in self._data:
+            #Compute weighted average
+            self._data[key] = self._data[key] * old_weight +\
+                              update_data[key] * new_weight
+            #Check to see if we have found a new maximum
+            if self.__maxes.has_key(key) and self.__maxes[key] < data[key]:
+                self.__maxes[key] = data[key]
 
     def as_dict(self):
         data = {

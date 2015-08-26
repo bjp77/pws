@@ -118,7 +118,8 @@ class Observer(object):
             #TODO Backfill and resume after connection failure
             if self._obs is None:
                 ts = datetime.datetime.utcnow()
-                self._obs = Observation(ts, self.console.measure(), maxes=['wind_speed'])
+                obs = self.console.measure()
+                self._obs = Observation(ts, obs, maxes=['wind_speed'])
             else:
                 self._obs.update(self.console.measure())
             gevent.sleep(self.poll_interval)
