@@ -79,6 +79,14 @@ class _ObsData(DotDict):
         except (KeyError, ValueError) as e:
             logging.error(e)
 
+    def copy(self):
+        """
+        Return a shallow copy of self
+        """
+        data_copy = super(_ObsData, self).copy()
+        return _ObsData(data_copy)
+
+
 class Observation(object):
     """
     Observation class
@@ -111,7 +119,7 @@ class Observation(object):
     @property
     def maxes(self):
         """Return the list of tracked maximum value keys."""
-        return self.__maxes
+        return self.__maxes.copy()
 
     @property
     def count(self):
@@ -121,7 +129,7 @@ class Observation(object):
     @property
     def data(self):
         """Return the measured data."""
-        return self._data
+        return self._data.copy()
 
     @data.setter
     def data(self, data):
