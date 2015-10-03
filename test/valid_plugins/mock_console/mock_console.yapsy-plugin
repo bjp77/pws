@@ -1,0 +1,8 @@
+[Core]
+Name = Test Console Plugin
+Module = mock_console
+
+[Documentation]
+Description = Test Stub
+Author = Brian Parry
+Version = 1.0

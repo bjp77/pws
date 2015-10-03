@@ -1,13 +1,12 @@
 import inspect
-import importlib #not sure if this is really needed. 
 import logging
 import json
 import time
 from mongo import Database
 import logging
 import gevent
-import pluginbase
 import datetime
+from yapsy.PluginManager import PluginManager
 from observation import Observation
 
 logging.basicConfig(filename='/var/log/pwsobs.log',
@@ -15,17 +14,21 @@ logging.basicConfig(filename='/var/log/pwsobs.log',
 log = logging.getLogger()
 log.setLevel(logging.DEBUG)
 
-class Observer(object):
-    CNSL_PLUGIN_PATH = './consoles'
-    EMIT_PLUGIN_PATH = './emitters'
-    CNSL_PLUGIN_BASE = 'console_models'
-    EMIT_PLUGIN_BASE = 'emitter_types'
-    CNSL_PKG_SPEC = 'consoles.{0}'
-    EMIT_PKG_SPEC = 'emitters.{0}'
-    DISCOVER_METHOD = 'discover'
-    CONNECT_METHOD = 'connect'
+CNSL_PLUGIN_PATH = 'consoles'
+EMIT_PLUGIN_PATH = 'emitters'
 
-    def __init__(self, find_cnsl=True, find_emitters=True, poll_interval=5, emit_interval=60):
+class ObsPluginManager(PluginManager):
+    def instanciateElement(self, element):
+        if hasattr(element, 'discover'):
+            return element.discover()
+        elif hasattr(element, 'connect'):
+            return element.connect()
+        return None
+
+class Observer(object):
+    def __init__(self, console_path=CNSL_PLUGIN_PATH, find_cnsl=True, 
+                 emitter_path=EMIT_PLUGIN_PATH, find_emitters=True, 
+                 poll_interval=5, emit_interval=60):
         """Iterate over available PWS console plugins.  Once a plugin
         is found that returns a connection object from its discover method,
         create an instance of the discovered console.
@@ -35,71 +38,48 @@ class Observer(object):
         self.emit_interval = emit_interval
         self._obs = None
         self.db = Database()
+        self.console = None
+        self._console_path = console_path
+        self.emitters = []
+        self._emitter_path = emitter_path
         if find_cnsl:
-            self.console = self.find_console()
+            self.find_console()
         if find_emitters:
-            self.emitters = self.find_emitters()
+            self.find_emitters()
 
     def find_console(self):
         """Look for available console."""
-        console = None
+        plugin_manager = ObsPluginManager()
+        plugin_manager.setPluginPlaces([self._console_path])
+        plugin_manager.collectPlugins()
 
-        plugin_base = pluginbase.PluginBase(self.CNSL_PLUGIN_BASE)
-        plugin_source = plugin_base.make_plugin_source(
-           searchpath=[self.CNSL_PLUGIN_PATH])
+        for plugin in plugin_manager.getAllPlugins():
+            logging.debug('Found potential console plugin: {0}'.format(plugin.plugin_object))
+            if hasattr(plugin.plugin_object, 'discover'):
+                logging.debug('Class {0} has discover method'.format(plugin.plugin_object))
+                self.console = plugin.plugin_object.discover()
+                if self.console is not None:
+                    break
 
-        for plugin in plugin_source.list_plugins():
-            logging.debug('Found potential console plugin: {0}'.format(plugin))
-            #console_plugin = plugin_source.load_plugin(plugin)
-            console_plugin = importlib.import_module(
-                self.CNSL_PKG_SPEC.format(plugin))
-            for cnsl_name, cnsl_class in inspect.getmembers(console_plugin,
-                                                            inspect.isclass):
-                if not hasattr(cnsl_class, self.DISCOVER_METHOD):
-                    continue
-
-                logging.debug('Class {0} has discover method'.format(cnsl_name))
-                console = cnsl_class.discover()
-                if console is not  None:
-                    logging.info('Discovered {0} console.'.format(cnsl_name))
-                    return console
-                else:
-                    logging.warning('No {0} console found.'.format(cnsl_name))
-
-        logging.error('No consoles found.')
-        # No console found
-        return console
+        if not self.console:
+            logging.warning('No consoles found.')
 
     def find_emitters(self):
         """Look for available emitter plugins"""
-        emitters = []
+        plugin_manager = ObsPluginManager()
+        plugin_manager.setPluginPlaces([self._emitter_path])
+        plugin_manager.collectPlugins()
 
-        plugin_base = pluginbase.PluginBase(self.EMIT_PLUGIN_BASE)
-        plugin_source = plugin_base.make_plugin_source(
-           searchpath=[self.EMIT_PLUGIN_PATH])
+        for plugin in plugin_manager.getAllPlugins():
+            logging.debug('Found potential console plugin: {0}'.format(plugin.plugin_object))
+            if hasattr(plugin.plugin_object, 'connect'):
+                logging.debug('Class {0} has connect method'.format(plugin.plugin_object))
+                emitter = plugin.plugin_object.connect()
+                if emitter is not None:
+                    self.emitters.append(emitter)
 
-        for plugin in plugin_source.list_plugins():
-            #emitter_plugin = plugin_source.load_plugin(plugin)
-            logging.debug('Found potential emit plugin {0}'.format(plugin))
-            emitter_plugin = importlib.import_module(
-                self.EMIT_PKG_SPEC.format(plugin))
-            for emit_name, emit_class in inspect.getmembers(emitter_plugin,
-                                                            inspect.isclass):
-                if not hasattr(emit_class, self.CONNECT_METHOD):
-                    continue
-
-                logging.debug('Class {0} has connect method'.format(emit_name))
-                emitter = emit_class.connect()
-                if emitter != None:
-                    logging.info('Connected to {0} emitter'.format(emit_name))
-                    emitters.append(emitter)
-                else:
-                    logging.warning('No {0} emitter found'.format(emit_name))
-
-        if len(emitters) == 0:
-            logging.warning('No emitters found')
-
-        return emitters
+        if not self.emitters:
+            logging.warning('No emitters found.')
 
     def _emit(self):
         while True:

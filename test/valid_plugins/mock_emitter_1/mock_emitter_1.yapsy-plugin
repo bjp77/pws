@@ -1,0 +1,8 @@
+[Core]
+Name = Test Emitter Plugin 1
+Module = mock_emitter_1
+
+[Documentation]
+Description = Test Stub
+Author = Brian Parry
+Version = 1.0

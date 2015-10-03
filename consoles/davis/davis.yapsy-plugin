@@ -1,0 +1,8 @@
+[Core]
+Name = Davis Console Plugin
+Module = davis
+
+[Documentation]
+Description = Davis Vantage Plugin
+Author = Brian Parry
+Version = 1.0
