@@ -55,9 +55,6 @@ class ObserationTestBase(unittest.TestCase):
         obs.data = data
         self.assertEqual(obs.data.temperature, 94.4)
 
-        obs.data.temperature = 54.9
-        self.assertEqual(obs.data.temperature, 54.9)
-
     def test_reject_invalid_data(self):
         """Test adding invalid measurements to observation."""
         ts = datetime.datetime.utcnow()
@@ -81,7 +78,6 @@ class ObserationTestBase(unittest.TestCase):
 
         obs.data.pressure = 94.56
         self.assertEqual(obs.data.pressure, 29.123)
-
 
     def test_update(self):
         """Test update observation."""

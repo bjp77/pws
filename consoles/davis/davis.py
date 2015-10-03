@@ -5,6 +5,7 @@ import datetime
 import time
 import re
 import logging
+from yapsy.IPlugin import IPlugin
 
 class _Command(object):
     def __init__(self, cmd, patt):
@@ -33,7 +34,7 @@ class _SerialCommand(serial.Serial):
         else:
             return []
 
-class DavisConsole(object):
+class DavisConsole(IPlugin):
     '''Davis Vantage Pro2/Vue plugin class.'''
 
     class _DataDesc(object):
@@ -65,7 +66,7 @@ class DavisConsole(object):
 
     def __init__(self, conn):
         self._serial = _SerialCommand(conn[0], conn[1])
-    
+     
     @classmethod
     def discover(cls):
         """Return tuple with discovered serial connection."""

@@ -2,8 +2,9 @@ import configparser
 import requests
 import urllib
 import logging
+from yapsy.IPlugin import IPlugin
 
-class Wunderground(object):
+class Wunderground(IPlugin):
 
     _mapper = {
         'temperature': '&tempf={0:.2f}',
