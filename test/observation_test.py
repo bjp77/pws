@@ -1,5 +1,5 @@
 import unittest
-from observer.observation import Observation
+from ..observation import Observation
 import datetime
 import json
 
