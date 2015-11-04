@@ -1,61 +1,98 @@
-#Personal Weather Station Observer
+[![Build Status](https://travis-ci.org/brianparry/pws.svg?branch=master)](https://travis-ci.org/brianparry/pws)
 
-The PWS Obersver is an application written in Python that connects to a PWS
-console, periodically samples console data, and then stores the data in a
-Mongo database.  A plugin framework is used to allow support for additional
-consoles to be added easily. It also provides support for "emitter" plugins
-that can transform and send weather data to some remote source.
+# Personal Weather Station Observer
 
-Overall goals of this project are:
+The PWS Observer is a personal project that I decided to start for a few
+reasons:
 
-1. To provide more access and control to the raw data.
-2. To run in the background without a clumsy GUI.
-3. To provide support for uploading data to a remote location such as Weather
-Underground.
-4. To run on any platform (although it has only been tested with Ubuntu Server).
-5. To cleanly recover from common failures such as loss of network connectivity
-and loss of PWS connectivity.
+1. To give me a way to develop my Python skills
+2. Because I was unsatisfied with available personal weather station
+software options.
+3. Because I like writing software and it seemed like it would be a fun
+thing to do.
 
-At this point most of these things are still a work in progress.
+Most of the PWS software options I've tried have some limitation or another
+that make them less than ideal for me.  Mainly, I wanted something that
+would:
+
+1. __Run as a daemon__.  My data is uploaded to Weather Underground and I use
+www.wunderground.com as my user interface; I didn't want a minimized GUI 
+sitting open all the time.  I also wanted to use a service manager to 
+automatically start the daemon as well as restart it in the event of a crash.
+2. __Recover from connection problems.__  There are two types of connection
+problems that commonly plague my weather station.  The first is loss of USB
+conenctivity (with three kids running around my house, cables have a tendency
+to get unplugged often).  The second is loss of network connectivity which is 
+less common but does occasionally happen.  Most of the software I tried
+handled loss of network connectivity to at least some extent but nothing 
+really handled loss of USB connection very well.  I want to be able to simply
+plug the cable back in and automatically gather all of the measurements that
+were missed while the cable was unplugged.
+
+Most of this is still a work in progress and I'm not sure I'll ever finish
+it, but for the moment the plan is to:
+
+1. Get basic data collection and upload working - Done.
+2. Develop setup and Ubuntu upstart scripts - Not started yet.
+3. Work on better connection loss handling - Not started yet.
+4. Add support for other OSes - Not started yet.
+
+Eventually, I might even try running this on a Rasberry Pi so I don't need
+to keep a PC running and consuming power all the time.
+
+# Plugins
+
+To allow the weather station software to be easily extended, I used a
+plugin architecture based on Yapsy for "consoles" and "emitters".
+
+The term console refers to the hardware used to interface with the weather 
+station sensors.  Typically, consoles use a USB connection to communicate
+with a host PC.  Using plugins allows additional weather station types to be 
+added in the future without too much trouble.
+
+Emitters are plugins that transmit weather observations to various sites such
+as Weather Underground.
 
 ## Console Plugins
 
-While at the moment, only Davis Vantage Vue and Pro2 weather stations are 
-supported, plugins for any type of PWS console can be added.  
+I have a Davis Vantage Vue weather station, so this is the only console
+type currently implemented.  Others can be added using the existing davis
+plugin as a template.  The basic requirements are:  
 
-To add a console plugin:
-
-1. Create a new python file in the consoles directory.
-2. Create a class within this new file.
-3. Create a @classmethod called discover()
-4. Create an instance method called measure()
+1. Create a new directory in the consoles directory.
+2. Create three new files in this directory:
+    1. Python source file for the plugin code.
+    2. Python `__init.py__` file.
+    3. yapsy-plugin file for plugin metadata.
+3. Create a new class that inherits from yapsy.IPlugin.IPlugin.
+3. Create a `@classmethod` called `discover()`
+4. Create an instance method called `measure()`
 
 The job of the discover method is to look for a connnected console and, if one
 is found, return an instance of the plugin class.  The measure() method should
 read data from the console and return a dictionary of key/value pairs
 corresponding to each measured value.
 
-Note that only the first console plugin that finds something will be used.
-There is no support for connections to multiple consoles.
+Note that only the first console plugin that returns something other than `None`
+will be used.  There is no support for connections to multiple consoles.
 
 ## Emitter Plugins
 
-Only a dummy plugin is supported at the moment, but a Wunderground emitter will
-be available soon.
+Only a Weather Underground Emitter is currently available.  Adding emitter
+plugins is very similar to adding console plugins.  The only differences are:
 
-To add an emitter plugin:
+1. Emitter plugins live in the emitters directory.
+2. The two required methods are a `@classmethod` called `connect()` and an
+instance method called `send()`.
 
-1. Create a new python file in the emitters directory.
-2. Create a class within this new file.
-3. Create a @classmethod called connect()
-4. Create an instance method called send(data)
+The job of the connect() method is to connect to the remote site and return an
+instance of the emitter class if successful.  The send(data) method takes a
+dictionary as an argument, transforms this data into a format suitable for the
+remote site, and transmits the data.
 
-Like the console plugins, two methods are required.  The job of the connect()
-method is to connect to the remote site and return an instance of the
-emitter class if successful.  The send(data) method takes a dictionary as an
-argument, transforms this data into a format suitable for the remote site, and
-transmits the data.
-
-Unlike console plugins, many emitters are supported.  Data will be sent to each
+Unlike console plugins, many emitters can be used.  Data will be sent to each
 emitter that returns an instance from its discover method.
 
+## Quick Start Guide
+
+In the near future, this section will have installation and usage instructions.
