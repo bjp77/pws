@@ -13,8 +13,8 @@ logging.basicConfig(format='%(levelname)s:%(asctime)s %(message)s')
 log = logging.getLogger()
 log.setLevel(logging.DEBUG)
 
-CNSL_PLUGIN_PATH = 'consoles'
-EMIT_PLUGIN_PATH = 'emitters'
+CNSL_PLUGIN_PATH = 'lib/consoles'
+EMIT_PLUGIN_PATH = 'lib/emitters'
 
 class ObsPluginManager(PluginManager):
     def instanciateElement(self, element):
@@ -40,14 +40,15 @@ class Observer(object):
         self._console_path = console_path
         self.emitters = []
         self._emitter_path = emitter_path
-        if find_cnsl:
-            self.find_console()
-        if find_emitters:
-            self.find_emitters()
         if not plugin_conf:
             self.plugin_conf={}
         else:
             self.plugin_conf = plugin_conf
+
+        if find_cnsl:
+            self.find_console()
+        if find_emitters:
+            self.find_emitters()
 
     def find_console(self):
         """Look for available console."""
