@@ -6,4 +6,4 @@ plugin_conf = {
 }
 
 if __name__ == '__main__':
-    Observer(plugin_conf=plugin_conf).run()
+    Observer(plugin_conf=plugin_conf).start()

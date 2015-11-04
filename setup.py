@@ -1,13 +1,13 @@
-from disutils.core import setup
+from setuptools import setup
 
-with open('requiremnts.txt') as f:
+with open('requirements.txt') as f:
     requires = f.read().splitlines()
 
-setup(name='PWS Observer',
+setup(name='pws',
       version='0.0.1',
       author='Brian Parry',
-      packages = ['pwsobs'],
-      package_dir={'pwsobs': 'lib'},
-      requires=requires,
+      packages = ['pws'],
+      package_dir={'pws': 'lib'},
+      install_requires=requires,
       scripts=['scripts/pwsrun']
      )

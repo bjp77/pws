@@ -9,8 +9,7 @@ import datetime
 from yapsy.PluginManager import PluginManager
 from observation import Observation
 
-logging.basicConfig(filename='/var/log/pwsobs.log',
-                    format='%(levelname)s:%(asctime)s %(message)s')
+logging.basicConfig(format='%(levelname)s:%(asctime)s %(message)s')
 log = logging.getLogger()
 log.setLevel(logging.DEBUG)
 
