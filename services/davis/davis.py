@@ -5,7 +5,9 @@ import datetime
 import time
 import re
 import logging
-from yapsy.IPlugin import IPlugin
+import sys
+import yaml
+from pws.lib import Observer
 
 class _Command(object):
     def __init__(self, cmd, patt):
@@ -27,14 +29,14 @@ class _SerialCommand(serial.Serial):
     def exec_cmd(self, cmd):
         for attempt in range(1, 5):
             self.write(cmd.cmd)
-            time.sleep(0.55555)
+            time.sleep(0.5)
             data = self.read(self.inWaiting())
             if re.search(cmd.patt, data) is not None:
                 return [ord(c) for c in data]
         else:
             return []
 
-class DavisConsole(IPlugin):
+class DavisObserver(Observer):
     '''Davis Vantage Pro2/Vue plugin class.'''
 
     class _DataDesc(object):
@@ -64,16 +66,23 @@ class DavisConsole(IPlugin):
         'wind_dir': _DataDesc([17, 18], 1),
     }
 
-    def __init__(self, conn):
+    def __init__(self, conn=None, **kwargs):
+        super(DavisObserver, self).__init__(**kwargs)
         self._serial = _SerialCommand(conn[0], conn[1])
      
     @classmethod
-    def discover(cls):
+    def discover(cls, config=None):
+        if not config:
+            return None
+
+        with open(config, 'r') as f:
+            conf = yaml.load(f)
+        amqp = conf.get('amqp')
         """Return tuple with discovered serial connection."""
         for port in serialenum.enumerate():
             ser = _SerialCommand(port, 19200)
             if ser.exec_cmd(_commands.test) is not None:
-                return cls((port, 19200))
+                return cls(conn=(port, 19200), amqp=amqp)
 
         return None
         
@@ -88,4 +97,8 @@ class DavisConsole(IPlugin):
                logging.error(e)
 
        return obs
-   
+  
+if __name__ == '__main__':
+    davis_observer = DavisObserver.discover(config=sys.argv[1])
+    davis_observer.poll()
+ 

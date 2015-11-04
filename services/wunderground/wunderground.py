@@ -1,10 +1,11 @@
-import configparser
 import requests
 import urllib
 import logging
-from yapsy.IPlugin import IPlugin
+import yaml
+import sys
+from pws.lib import Reporter
 
-class Wunderground(IPlugin):
+class WUReporter(Reporter):
 
     _mapper = {
         'temperature': '&tempf={0:.2f}',
@@ -22,7 +23,8 @@ class Wunderground(IPlugin):
                       'updateweatherstation.php?ID={0}&PASSWORD={1}&dateutc={2}'
                       ',action=updateraw')
 
-    def __init__(self, station, password):
+    def __init__(self, station=None, password=None, **kwargs):
+        super(WUReporter, self).__init__(**kwargs)
         self._station = station
         self._password = password
     
@@ -39,28 +41,34 @@ class Wunderground(IPlugin):
         return url
 
     @classmethod
-    def connect(cls):
-        f = '/etc/opt/pws/emitters/wunderground.conf'
-        conf = configparser.ConfigParser()
-        conf.read(f)
-        station = conf.get('WUConfig', 'station')
-        password = conf.get('WUConfig', 'password')
-        for i in range(0,5):
+    def connect(cls, config=None):
+        if not config:
+            return None
+        
+        with open(config, 'r') as f:
+            conf = yaml.load(f)
+        amqp = conf.get('amqp')
+        station = conf.get('station').get('id')
+        password = conf.get('station').get('password')
+        for i in xrange(0, 5):
             try:
                 r = requests.get(cls._base_url_spec.format(station,
                                                            password, 'now'))
                 if r.status_code == requests.codes.ok:
-                    return cls(station, password)
+                    return cls(station=station, password=password, amqp=amqp)
             except Exception as e:
                 logging.error(e)
         else:
             return None
 
     def send(self, data):
-	print data
         try:
             r = requests.get(self._build_url(data))
             return r.status_code == requests.codes.ok
         except Exception as e:
             logging.error(e)
             return False
+
+if __name__ == '__main__':
+    wu_reporter = WUReporter.connect(config=sys.argv[1])
+    wu_reporter.listen()

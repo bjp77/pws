@@ -29,14 +29,14 @@ class _ObsData(DotDict):
     #Table of valid ranges for all observation types.  This table also
     #serves to define the expected set of measurements
     _valid = {
-         'temperature': _ObsValid(-100, 150),
+         'temperature': _ObsValid(-80, 150),
          'humidity': _ObsValid(0, 100),
          'pressure': _ObsValid(20, 32.5),
          'rain_rate': _ObsValid(0, 10.0),
          'daily_rain': _ObsValid(0, 10.0),
          'wind_speed': _ObsValid(0, 200),
          'wind_dir': _ObsValid(0, 360),
-         'dewpoint': _ObsValid(-100, 150),
+         'dewpoint': _ObsValid(-80, 150),
     }
 
     def __init__(self, data):
@@ -190,7 +190,7 @@ class Observation(object):
         inclues the timestamp and maximum values.
         """
         data = {
-            'time_stamp': self.timestamp
+            'time_stamp': str(self.timestamp)
         }
         for key in self.__maxes:
             data[self.__make_max_key(key)] = self.__maxes[key]

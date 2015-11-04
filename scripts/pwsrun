@@ -1,0 +1,9 @@
+#!/usr/bin/python
+from pws.observer import Observer
+
+plugin_conf = {
+    'Wunderground Emitter Plugin': '/etc/opt/pws/emitters/wunderground.conf'
+}
+
+if __name__ == '__main__':
+    Observer(plugin_conf=plugin_conf).start()

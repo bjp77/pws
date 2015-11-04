@@ -1,0 +1,10 @@
+station:
+  id: KMAMYSTA1
+  password: secret
+amqp:
+  host: localhost
+  port: 5672
+  user: guest
+  password: guest
+  exchange: obs
+  routing_key: obs.*

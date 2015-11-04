@@ -1,0 +1,7 @@
+amqp:
+  host: localhost
+  port: 5672
+  user: guest
+  password: guest
+  exchange: obs
+  routing_key: obs.davis

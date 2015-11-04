@@ -1,8 +1,0 @@
-[Core]
-Name = Wunderground Emitter Plugin
-Module = wunderground
-
-[Documentation]
-Description = Wunderground Emitter Plugin
-Author = Brian Parry
-Version = 1.0
