@@ -8,5 +8,6 @@ setup(name='PWS Observer',
       author='Brian Parry',
       packages = ['pwsobs'],
       package_dir={'pwsobs': 'lib'},
-      requires=requires
+      requires=requires,
+      scripts=['scripts/pwsrun']
      )
