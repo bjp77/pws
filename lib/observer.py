@@ -28,12 +28,11 @@ class ObsPluginManager(PluginManager):
 class Observer(object):
     def __init__(self, console_path=CNSL_PLUGIN_PATH, find_cnsl=True, 
                  emitter_path=EMIT_PLUGIN_PATH, find_emitters=True, 
-                 poll_interval=5, emit_interval=60):
+                 poll_interval=5, emit_interval=60, plugin_conf=None):
         """Iterate over available PWS console plugins.  Once a plugin
         is found that returns a connection object from its discover method,
         create an instance of the discovered console.
         """
-        #TODO Load config file
         self.poll_interval = poll_interval
         self.emit_interval = emit_interval
         self._obs = None
@@ -46,6 +45,10 @@ class Observer(object):
             self.find_console()
         if find_emitters:
             self.find_emitters()
+        if not plugin_conf:
+            self.plugin_conf={}
+        else:
+            self.plugin_conf = plugin_conf
 
     def find_console(self):
         """Look for available console."""
@@ -57,7 +60,8 @@ class Observer(object):
             logging.debug('Found potential console plugin: {0}'.format(plugin.plugin_object))
             if hasattr(plugin.plugin_object, 'discover'):
                 logging.debug('Class {0} has discover method'.format(plugin.plugin_object))
-                self.console = plugin.plugin_object.discover()
+                self.console = \
+                    plugin.plugin_object.discover(config=self.plugin_conf.get(plugin.name, None))
                 if self.console is not None:
                     break
 
@@ -74,7 +78,8 @@ class Observer(object):
             logging.debug('Found potential console plugin: {0}'.format(plugin.plugin_object))
             if hasattr(plugin.plugin_object, 'connect'):
                 logging.debug('Class {0} has connect method'.format(plugin.plugin_object))
-                emitter = plugin.plugin_object.connect()
+                emitter = \
+                    plugin.plugin_object.connect(config=self.plugin_conf.get(plugin.name, None))
                 if emitter is not None:
                     self.emitters.append(emitter)
 

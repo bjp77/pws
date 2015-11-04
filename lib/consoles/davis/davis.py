@@ -68,7 +68,7 @@ class DavisConsole(IPlugin):
         self._serial = _SerialCommand(conn[0], conn[1])
      
     @classmethod
-    def discover(cls):
+    def discover(cls, config=None):
         """Return tuple with discovered serial connection."""
         for port in serialenum.enumerate():
             ser = _SerialCommand(port, 19200)

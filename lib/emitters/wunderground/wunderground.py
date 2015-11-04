@@ -39,13 +39,15 @@ class Wunderground(IPlugin):
         return url
 
     @classmethod
-    def connect(cls):
-        f = '/etc/opt/pws/emitters/wunderground.conf'
+    def connect(cls, config=None):
+        if not config:
+            return None
+        
         conf = configparser.ConfigParser()
-        conf.read(f)
+        conf.read(config)
         station = conf.get('WUConfig', 'station')
         password = conf.get('WUConfig', 'password')
-        for i in range(0,5):
+        for i in xrange(0, 5):
             try:
                 r = requests.get(cls._base_url_spec.format(station,
                                                            password, 'now'))
@@ -57,7 +59,6 @@ class Wunderground(IPlugin):
             return None
 
     def send(self, data):
-	print data
         try:
             r = requests.get(self._build_url(data))
             return r.status_code == requests.codes.ok
