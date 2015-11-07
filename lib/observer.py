@@ -8,21 +8,23 @@ import gevent
 import datetime
 from yapsy.PluginManager import PluginManager
 from observation import Observation
+import sys
+import os
 
 logging.basicConfig(format='%(levelname)s:%(asctime)s %(message)s')
 log = logging.getLogger()
 log.setLevel(logging.DEBUG)
 
-CNSL_PLUGIN_PATH = 'lib/consoles'
-EMIT_PLUGIN_PATH = 'lib/emitters'
+CNSL_PLUGIN_PATH = 'pws/lib/consoles'
+EMIT_PLUGIN_PATH = 'pws/lib/emitters'
 
 class ObsPluginManager(PluginManager):
     def instanciateElement(self, element):
-        if hasattr(element, 'discover'):
-            return element.discover()
-        elif hasattr(element, 'connect'):
-            return element.connect()
-        return None
+        """
+        Just return the class object and use factory method
+        to instanciate element later.
+        """
+        return element
 
 class Observer(object):
     def __init__(self, console_path=CNSL_PLUGIN_PATH, find_cnsl=True, 
@@ -50,10 +52,32 @@ class Observer(object):
         if find_emitters:
             self.find_emitters()
 
+    @staticmethod
+    def _find_directory(relpath):
+        """
+        This ugliness is needed to figure out the full path of
+        console and emitter plugins.  This assmes that they have been
+        installed in site-packages or dist-packages.
+
+        I can't help but think there is a better way to do this, but
+        this will work for now.
+        """
+        for path in sys.path:
+            if path.endswith('-packages'):
+                contents = os.listdir(path)
+                for item in contents:
+                    full_item_path = os.path.join(path, item)
+                    if os.isdir(full_item_path) and \
+                       item.startswith('pws') and \
+                       os.isdir(os.path.join(full_item_path, relpath)):
+                        return os.path.join(full_item_path, relpath)
+        return None
+
     def find_console(self):
         """Look for available console."""
+        abs_console_path = self._find_directory(self._console_path)
         plugin_manager = ObsPluginManager()
-        plugin_manager.setPluginPlaces([self._console_path])
+        plugin_manager.setPluginPlaces([abs_console_path])
         plugin_manager.collectPlugins()
 
         for plugin in plugin_manager.getAllPlugins():
@@ -70,8 +94,9 @@ class Observer(object):
 
     def find_emitters(self):
         """Look for available emitter plugins"""
+        abs_emitter_path = self._find_directory(self._emitter_path)
         plugin_manager = ObsPluginManager()
-        plugin_manager.setPluginPlaces([self._emitter_path])
+        plugin_manager.setPluginPlaces([abs_emitter_path])
         plugin_manager.collectPlugins()
 
         for plugin in plugin_manager.getAllPlugins():
